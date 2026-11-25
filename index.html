@@ -74,6 +74,23 @@ button:focus-visible{outline:3px solid var(--brand);outline-offset:2px}
 .wrong .wq{font-weight:600;margin:0 0 4px;overflow-wrap:anywhere}
 .wrong .wa{margin:0;color:var(--sub);font-size:.93rem;overflow-wrap:anywhere}
 .wrong .wa b{color:var(--ink)}
+.who{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin-bottom:12px}
+.who label{display:block;font-size:.88rem;color:var(--sub);margin-bottom:4px}
+.who input[type=text]{width:100%;font:inherit;font-size:16px;color:var(--ink);background:var(--bg);border:1px solid var(--line);
+  border-radius:10px;padding:10px 12px;min-height:46px;margin-bottom:10px}
+.who input[type=text]:focus{outline:3px solid var(--brand);outline-offset:1px}
+.jobs{display:flex;gap:8px;flex-wrap:wrap}
+.jobs label{flex:1 1 0;min-width:64px;margin:0;color:var(--ink)}
+.jobs input{position:absolute;opacity:0;pointer-events:none}
+.jobs span{display:block;text-align:center;border:1px solid var(--line);border-radius:10px;padding:10px 4px;min-height:46px;font-weight:600;background:var(--bg)}
+.jobs input:checked+span{background:var(--brand);color:var(--brand-ink);border-color:var(--brand)}
+.jobs input:focus-visible+span{outline:3px solid var(--brand);outline-offset:2px}
+.who small{display:block;color:var(--sub);font-size:.78rem;line-height:1.5;margin-top:8px}
+.reset{display:block;width:100%;color:var(--sub);font-size:.88rem;padding:12px;min-height:44px;text-decoration:underline}
+.reset.armed{color:var(--ng);font-weight:700;text-decoration:none;border:1px solid var(--ng);border-radius:12px;background:var(--ng-soft)}
+.meta{display:grid;grid-template-columns:auto 1fr;gap:2px 12px;text-align:left;font-size:.92rem;
+  border-top:1px solid var(--line);margin-top:12px;padding-top:12px}
+.meta dt{color:var(--sub)} .meta dd{margin:0;font-weight:600;overflow-wrap:anywhere}
 .foot{color:var(--sub);font-size:.78rem;text-align:center;margin-top:18px}
 [hidden]{display:none!important}
 </style>
@@ -85,12 +102,25 @@ button:focus-visible{outline:3px solid var(--brand);outline-offset:2px}
 <section id="home">
   <h1>診療報酬 〇×一問一答</h1>
   <p class="lead">リハビリスタッフ向け・2026年度初期研修。〇か×を押すと、すぐに正解と解説が出ます。</p>
+  <div class="who">
+    <label for="name">氏名（フルネーム）</label>
+    <input type="text" id="name" autocomplete="off" placeholder="例：玉島 太郎">
+    <label>職種</label>
+    <div class="jobs" role="radiogroup" aria-label="職種">
+      <label><input type="radio" name="job" value="PT"><span>PT</span></label>
+      <label><input type="radio" name="job" value="OT"><span>OT</span></label>
+      <label><input type="radio" name="job" value="ST"><span>ST</span></label>
+      <label><input type="radio" name="job" value="HFP"><span>HFP</span></label>
+    </div>
+    <small>結果画面に表示されます（提出用のスクリーンショットに使えます）。氏名はこの端末にも保存されません。</small>
+  </div>
   <label class="toggle"><input type="checkbox" id="shuffle">
     <span><b>出題順をシャッフルする</b><small>オフにすると研修書類の項目順に出題します</small></span></label>
   <button class="mode" data-mode="all"><b>全問を解く</b><span id="allDesc"></span></button>
   <button class="mode" data-mode="chapter"><b>章を選んで解く</b><span>7つの章から1つ選んで解きます</span></button>
   <button class="mode" data-mode="random"><b>ランダムに10問</b><span>毎回ちがう10問が出ます（短時間向け）</span></button>
   <button class="mode" data-mode="review"><b>間違えた問題だけ復習</b><span id="reviewDesc"></span></button>
+  <button class="reset" id="reset" type="button">復習の記録を消す（共用PCで使う前に）</button>
   <p class="foot">出典：2026年度初期研修使用書類「第6版 診療報酬（新人）」<br>成績はどこにも送信されません。</p>
 </section>
 
@@ -126,6 +156,12 @@ button:focus-visible{outline:3px solid var(--brand);outline-offset:2px}
     <div id="resTitle"></div>
     <div class="num"><span id="resScore"></span><small id="resTotal"></small></div>
     <div id="resRate"></div>
+    <dl class="meta">
+      <dt>氏名</dt><dd id="resName"></dd>
+      <dt>職種</dt><dd id="resJob"></dd>
+      <dt>出題</dt><dd id="resMode"></dd>
+      <dt>実施日時</dt><dd id="resDate"></dd>
+    </dl>
   </div>
   <div class="card" id="wrongCard">
     <h2 id="wrongHead"></h2>
@@ -163,6 +199,9 @@ function shuffled(a){
   return a;
 }
 function refreshHome(){
+  var rb=$('reset'); rb.classList.remove('armed');
+  rb.textContent='復習の記録を消す（共用PCで使う前に）';
+  rb.disabled = wrongIds.length===0;
   $('allDesc').textContent='全'+QUESTIONS.length+'問をまとめて解きます';
   var b=document.querySelector('[data-mode="review"]');
   b.disabled = wrongIds.length===0;
@@ -210,6 +249,13 @@ function finish(){
   $('resScore').textContent=state.right;
   $('resTotal').textContent=' / '+total+' 問正解';
   $('resRate').textContent='正答率 '+rate+'%';
+  var nm=$('name').value.replace(/^\s+|\s+$/g,'');
+  var jb=document.querySelector('input[name="job"]:checked');
+  $('resName').textContent = nm || '（未入力）';
+  $('resJob').textContent  = jb ? jb.value : '（未入力）';
+  $('resMode').textContent = state.label+'（'+total+'問）';
+  var t=new Date(), z=function(n){return (n<10?'0':'')+n;};
+  $('resDate').textContent = t.getFullYear()+'年'+(t.getMonth()+1)+'月'+t.getDate()+'日 '+z(t.getHours())+':'+z(t.getMinutes());
   var box=$('wrongList'); box.textContent='';
   if(state.missed.length){
     $('wrongHead').textContent='間違えた問題（'+state.missed.length+'問）';
@@ -256,6 +302,23 @@ $('quit').addEventListener('click',function(){ refreshHome(); show('home'); });
 $('retryWrong').addEventListener('click',function(){ start(state.missed.slice(),'復習'); });
 document.querySelectorAll('[data-go="home"]').forEach(function(b){
   b.addEventListener('click',function(){ refreshHome(); show('home'); });
+});
+var resetTimer=null;
+$('reset').addEventListener('click',function(){
+  var b=$('reset');
+  if(!b.classList.contains('armed')){
+    b.classList.add('armed');
+    b.textContent='本当に消しますか？もう一度押すと消えます';
+    clearTimeout(resetTimer);
+    resetTimer=setTimeout(function(){ b.classList.remove('armed'); refreshHome(); },5000);
+    return;
+  }
+  clearTimeout(resetTimer);
+  wrongIds=[]; saveWrong();
+  b.classList.remove('armed');
+  refreshHome();
+  b.textContent='復習の記録を消しました';
+  resetTimer=setTimeout(refreshHome,2500);
 });
 refreshHome();
 </script>
